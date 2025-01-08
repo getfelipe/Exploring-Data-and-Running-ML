@@ -3,6 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.cluster import KMeans
+from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 
 # Coluna Privada: Fator com níveis Sim ou Não indicando se a universidade é privada ou não
 # Coluna Apps: Número de candidaturas recebidas
@@ -23,53 +26,67 @@ from sklearn.cluster import KMeans
 # Expend: Despesas da faculdade por aluno
 # Grad.Rate: Taxa de graduação
 
-# Load the data
+
+# Carregar o dataset
 df = pd.read_csv('College_Data.csv', index_col=0)
+df['Private'] = df['Private'].apply(lambda x: 1 if x == 'Yes' else 0)
 df.head()
 
-# Exploratory Data Analysis
 df.describe()
 
-# Scatterplot of Grad.Rate versus Room.Board where the points are colored by the Private column
-sns.lmplot(x='Room.Board', y='Grad.Rate', data=df, hue='Private', palette='coolwarm')
+# Existe um outlier que possui uma taxa de graduação muito alta além do normal, vamos excluí-lo
+college = df[df['Grad.Rate'] > 100]
+df = df.drop(college.index)
 
-# Scatterplot of F.Undergrad versus Outstate where the points are colored by the Private column
-sns.lmplot(x='F.Undergrad', y='Outstate', data=df, hue='Private', palette='coolwarm')
+# Verificar a relação de todas as variáveis com a variável target
+# Dessa forma é possível perceber quais variáveis podem ser padronizadas ou normalizadas.
+# Levando em consideração que variáveis que apresentam uma distribuição normal serão padronizadas e as que não apresentam serão normalizadas.
+#sns.pairplot(df, hue='Private')
 
-# Stacked histogram showing Out of State Tuition based on the Private column using [sns.FacetGrid] and [plt.hist] methods.
+# Separando as variáveis que serão padronizadas e as que serão normalizadas
+df_standard = df[['Top10perc', 'Top25perc', 'Outstate', 'Room.Board', 'S.F.Ratio', 'perc.alumni', 'Private']]
+df_normalized = df.drop(['Top10perc', 'Top25perc', 'Outstate', 'Room.Board', 'S.F.Ratio', 'perc.alumni',], axis=1)
 
-df[df['Private'] == 'Yes']['Outstate'].plot(kind='hist', alpha=0.6, label='Private')
-df[df['Private'] == 'No']['Outstate'].plot(kind='hist', alpha=0.6, label='Public')
-plt.legend()
-
-
-df[df['Private'] == 'Yes']['Grad.Rate'].plot(kind='hist', alpha=0.6, label='Private')
-df[df['Private'] == 'No']['Grad.Rate'].plot(kind='hist', alpha=0.6, label='Public')
-plt.legend()
-
-# There seems to be a private school with a graduation rate of higher than 100%. What is the name of that school?
-df[df['Grad.Rate'] > 100]
-
-# Set that school's graduation rate to 100 so it makes sense
-df['Grad.Rate']['Cazenovia College'] = 100
+#Aplicando a correlação para eliminar variáveis que não possuem relação com a variável target
+#sns.heatmap(df_standard.corr(),annot=True)
+df_standard = df_standard.drop(['Private', 'Outstate', 'S.F.Ratio', 'perc.alumni'], axis=1)
 
 
-# K Means Cluster Creation
-# Create an instance of a K Means model with 2 clusters
+#sns.heatmap(df_normalized.corr(),annot=True)
+df_normalized = df_normalized.drop(['Apps', 'Accept', 'P.Undergrad', 'Private'], axis=1)
 
-kmeans = KMeans(n_clusters=2)
-df.drop('Private', axis=1, inplace=True)
-kmeans.fit(df)
+# Verificando se há relação entre as despesas e a taxa de graduação
+# É possível concluir que alunos que possuem altas despesas tendem a se formar mais, porém, a relação não é tão forte.
+#sns.lmplot(x='Expend', y='Grad.Rate', data=df, hue='Private', palette='coolwarm')
 
-# Cluster center vectors
+
+
+# Obs. Não foi aplicado as etapas de normalização e padronização, pois o modelo teve uma acurácia inferior em relação a quando não foi aplicado.
+# Pré-processamento, aplicando a padronização e normalização
+#normalizer = MinMaxScaler()
+#scaler = StandardScaler()
+
+# df_standard = scaler.fit_transform(df_standard)
+# df_normalized = normalizer.fit_transform(df_normalized)
+
+# Depois de padronizar e normalizar, é necessário juntar os dois dataframes
+df_standard = pd.DataFrame(df_standard, columns=df_standard.columns, index=df_standard.index)
+df_normalized = pd.DataFrame(df_normalized, columns=df_normalized.columns, index=df_normalized.index)
+x = pd.concat([df_standard, df_normalized], axis=1)
+
+# Variável target
+y = pd.Series(df['Private'])
+
+
+# Utilizando o modelo KMeans para clusterizar os dados
+# Gerar dois clusters, um para universidades privadas e outro para universidades públicas
+kmeans = KMeans(n_clusters=2, random_state=15)
+model = kmeans.fit(x)
+
+# Centros de cada variável
 print(kmeans.cluster_centers_)
 
-# Evaluation
-# Create a new column for df called 'Cluster', which is a 1 for a Private school, and a 0 for a public school
-df['Cluster'] = df['Private'].apply(lambda x: 1 if x == 'Yes' else 0)
 
-# Create a confusion matrix and classification report to see how well the Kmeans clustering worked without being given any labels
-from sklearn.metrics import confusion_matrix, classification_report
-
-print(confusion_matrix(df['Cluster'], kmeans.labels_))
-print(classification_report(df['Cluster'], kmeans.labels_))
+# O modelo obteve uma acurácia de 83%
+clusters = model.predict(x)
+print(accuracy_score(clusters, y))
