@@ -7,6 +7,8 @@ from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import StandardScaler
 
+# Objetivo de clusterizar universidades em públicas e privadas aplicando o modelo K-Means com base nas seguintes variáveis:
+
 # Coluna Privada: Fator com níveis Sim ou Não indicando se a universidade é privada ou não
 # Coluna Apps: Número de candidaturas recebidas
 # Coluna Accept: Número de candidaturas aceitas
@@ -41,23 +43,23 @@ df = df.drop(college.index)
 # Verificar a relação de todas as variáveis com a variável target
 # Dessa forma é possível perceber quais variáveis podem ser padronizadas ou normalizadas.
 # Levando em consideração que variáveis que apresentam uma distribuição normal serão padronizadas e as que não apresentam serão normalizadas.
-#sns.pairplot(df, hue='Private')
+sns.pairplot(df, hue='Private')
 
 # Separando as variáveis que serão padronizadas e as que serão normalizadas
 df_standard = df[['Top10perc', 'Top25perc', 'Outstate', 'Room.Board', 'S.F.Ratio', 'perc.alumni', 'Private']]
 df_normalized = df.drop(['Top10perc', 'Top25perc', 'Outstate', 'Room.Board', 'S.F.Ratio', 'perc.alumni',], axis=1)
 
 #Aplicando a correlação para eliminar variáveis que não possuem relação com a variável target
-#sns.heatmap(df_standard.corr(),annot=True)
+sns.heatmap(df_standard.corr(),annot=True)
 df_standard = df_standard.drop(['Private', 'Outstate', 'S.F.Ratio', 'perc.alumni'], axis=1)
 
 
-#sns.heatmap(df_normalized.corr(),annot=True)
+sns.heatmap(df_normalized.corr(),annot=True)
 df_normalized = df_normalized.drop(['Apps', 'Accept', 'P.Undergrad', 'Private'], axis=1)
 
 # Verificando se há relação entre as despesas e a taxa de graduação
 # É possível concluir que alunos que possuem altas despesas tendem a se formar mais, porém, a relação não é tão forte.
-#sns.lmplot(x='Expend', y='Grad.Rate', data=df, hue='Private', palette='coolwarm')
+sns.lmplot(x='Expend', y='Grad.Rate', data=df, hue='Private', palette='coolwarm')
 
 
 
