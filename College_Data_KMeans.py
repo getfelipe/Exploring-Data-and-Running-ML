@@ -52,3 +52,24 @@ df[df['Grad.Rate'] > 100]
 
 # Set that school's graduation rate to 100 so it makes sense
 df['Grad.Rate']['Cazenovia College'] = 100
+
+
+# K Means Cluster Creation
+# Create an instance of a K Means model with 2 clusters
+
+kmeans = KMeans(n_clusters=2)
+df.drop('Private', axis=1, inplace=True)
+kmeans.fit(df)
+
+# Cluster center vectors
+print(kmeans.cluster_centers_)
+
+# Evaluation
+# Create a new column for df called 'Cluster', which is a 1 for a Private school, and a 0 for a public school
+df['Cluster'] = df['Private'].apply(lambda x: 1 if x == 'Yes' else 0)
+
+# Create a confusion matrix and classification report to see how well the Kmeans clustering worked without being given any labels
+from sklearn.metrics import confusion_matrix, classification_report
+
+print(confusion_matrix(df['Cluster'], kmeans.labels_))
+print(classification_report(df['Cluster'], kmeans.labels_))
